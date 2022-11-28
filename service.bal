@@ -1,17 +1,27 @@
 import ballerina/http;
+import ballerinax/github;
+import ballerina/io;
+//import ballerinax/googleapis.sheets as sheets;
 
+configurable string authToken = ?;
 # A service representing a network-accessible API
 # bound to port `9090`.
 service / on new http:Listener(9090) {
-
-    # A resource for generating greetings
-    # + name - the input string name
-    # + return - string name with hello message or error
-    resource function get greeting(string name) returns string|error {
-        // Send a response back to the caller.
-        if name is "" {
-            return error("name should not be empty!");
+    resource function get repositories() returns error? {
+        github:ConnectionConfig config = {
+            auth: {
+                token:authToken
+            }
+        };
+    github:Client|error githubClient = new (config);
+    if githubClient is github:Client {
+        github:SearchResult response = check githubClient->search("<org name> <text prefix>",github:SEARCH_TYPE_REPOSITORY,100);
+        github:Issue[]|github:User[]|github:Organization[]|github:Repository[]|github:PullRequest[] result = response.results;
+            if result is github:Repository[]{
+                foreach github:Repository repo in result {
+                io:println(repo.name);
+            } 
         }
-        return "Hello, " + name;
+    }
     }
 }
